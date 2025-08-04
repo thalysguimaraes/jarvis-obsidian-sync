@@ -1,5 +1,7 @@
 # Jarvis Obsidian Sync
 
+![Jarvis Bot Banner](public/banner-image.jpg)
+
 A companion Obsidian plugin for seamless integration with [Jarvis Bot](https://github.com/thalysguimaraes/jarvis-bot) - an AI-powered WhatsApp personal assistant that transcribes voice messages and manages tasks.
 
 ## 🤖 About Jarvis Bot Integration
