@@ -1,0 +1,11 @@
+{
+	"id": "jarvis-obsidian-sync",
+	"name": "Jarvis Obsidian Sync",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Companion plugin for Jarvis Bot - sync transcribed WhatsApp voice notes to your vault",
+	"author": "Thalys Guimarães",
+	"authorUrl": "https://github.com/thalysguimaraes",
+	"fundingUrl": "",
+	"isDesktopOnly": false
+}
