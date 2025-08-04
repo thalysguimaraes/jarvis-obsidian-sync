@@ -111,8 +111,11 @@ var WhatsAppVoiceSyncPlugin = class extends import_obsidian.Plugin {
       if (!isAutoSync) {
         new import_obsidian.Notice("Syncing voice notes...");
       }
+      console.log("Fetching voice notes from:", `${this.settings.jarvisBotUrl}/api/voice-notes/unprocessed`);
       const voiceNotes = await this.fetchVoiceNotes();
+      console.log("Fetched voice notes:", voiceNotes);
       if (voiceNotes.length === 0) {
+        console.log("No voice notes returned from API");
         if (!isAutoSync) {
           new import_obsidian.Notice("No new voice notes to sync");
         }
@@ -121,9 +124,14 @@ var WhatsAppVoiceSyncPlugin = class extends import_obsidian.Plugin {
       await this.ensureSyncFolderExists();
       let syncedCount = 0;
       for (const note of voiceNotes) {
+        console.log("Processing voice note:", note.id);
         if (await this.saveVoiceNote(note)) {
           syncedCount++;
+          console.log("Successfully saved voice note:", note.id);
           await this.markNoteAsProcessed(note.id);
+          console.log("Marked as processed:", note.id);
+        } else {
+          console.log("Failed to save voice note:", note.id);
         }
       }
       if (!isAutoSync || syncedCount > 0) {
@@ -169,13 +177,16 @@ var WhatsAppVoiceSyncPlugin = class extends import_obsidian.Plugin {
     try {
       const fileName = await this.generateFileName(note);
       const filePath = this.settings.syncFolder ? `${this.settings.syncFolder}/${fileName}` : fileName;
+      console.log(`Generated file path: ${filePath}`);
       const existingFile = this.app.vault.getAbstractFileByPath(filePath);
       if (existingFile) {
         console.log(`Voice note already exists: ${filePath}`);
         return true;
       }
       const content = this.formatVoiceNote(note);
+      console.log(`Creating file: ${filePath}`);
       await this.app.vault.create(filePath, content);
+      console.log(`Successfully created file: ${filePath}`);
       return true;
     } catch (error) {
       console.error("Error saving voice note:", error);
@@ -187,7 +198,8 @@ var WhatsAppVoiceSyncPlugin = class extends import_obsidian.Plugin {
     const timestamp = this.formatDate(date);
     const shortId = note.id.substring(0, 8);
     const preview = note.transcription.substring(0, 30).replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").toLowerCase();
-    return `voice-note-${timestamp}-${shortId}-${preview}.md`;
+    const sanitizedTimestamp = timestamp.replace(/[\\/:*?"<>|]/g, "-");
+    return `voice-note-${sanitizedTimestamp}-${shortId}-${preview}.md`;
   }
   formatVoiceNote(note) {
     const date = new Date(note.timestamp);
@@ -262,53 +274,8 @@ var WhatsAppVoiceSyncSettingTab = class extends import_obsidian.PluginSettingTab
       this.plugin.settings.dateFormat = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("Test Connection").setDesc("Test connection to Jarvis Bot").addButton((button) => button.setButtonText("Test").onClick(async () => {
-      await this.testConnection();
+    new import_obsidian.Setting(containerEl).setName("Manual Sync").setDesc("Manually sync voice notes now").addButton((button) => button.setButtonText("Sync Now").onClick(async () => {
+      await this.plugin.syncVoiceNotes();
     }));
-  }
-  async testConnection() {
-    if (!this.plugin.settings.jarvisBotUrl || !this.plugin.settings.apiKey) {
-      new import_obsidian.Notice("Please configure URL and API key first");
-      return;
-    }
-    try {
-      console.log("Testing connection to:", this.plugin.settings.jarvisBotUrl);
-      console.log("Using API key:", this.plugin.settings.apiKey.substring(0, 10) + "...");
-      const basicResponse = await fetch(`${this.plugin.settings.jarvisBotUrl}/test-connection`, {
-        method: "GET"
-      });
-      console.log("Basic test status:", basicResponse.status);
-      if (!basicResponse.ok) {
-        const basicError = await basicResponse.text();
-        console.error("Basic connection failed:", basicError);
-        new import_obsidian.Notice(`\u274C Basic connection failed: HTTP ${basicResponse.status}`);
-        return;
-      }
-      const response = await fetch(`${this.plugin.settings.jarvisBotUrl}/health`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${this.plugin.settings.apiKey}`,
-          "Content-Type": "application/json"
-        }
-      });
-      console.log("Response status:", response.status);
-      const headerObj = {};
-      response.headers.forEach((value, key) => {
-        headerObj[key] = value;
-      });
-      console.log("Response headers:", headerObj);
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Response data:", data);
-        new import_obsidian.Notice("\u2705 Connection successful!");
-      } else {
-        const errorText = await response.text();
-        console.error("Response error:", errorText);
-        new import_obsidian.Notice(`\u274C Connection failed: HTTP ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      new import_obsidian.Notice(`\u274C Connection failed: ${error.message}`);
-    }
   }
 };

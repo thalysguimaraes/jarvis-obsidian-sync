@@ -115,7 +115,7 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 		new Notice(`Available folders: ${folderNames.join(', ')}`);
 	}
 
-	private async syncVoiceNotes(isAutoSync = false) {
+	async syncVoiceNotes(isAutoSync = false) {
 		if (!this.settings.jarvisBotUrl || !this.settings.apiKey) {
 			if (!isAutoSync) {
 				new Notice('Please configure Jarvis Bot URL and API key in settings');
@@ -129,9 +129,12 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 			}
 
 			// Fetch voice notes from Jarvis Bot API
+			console.log('Fetching voice notes from:', `${this.settings.jarvisBotUrl}/api/voice-notes/unprocessed`);
 			const voiceNotes = await this.fetchVoiceNotes();
+			console.log('Fetched voice notes:', voiceNotes);
 			
 			if (voiceNotes.length === 0) {
+				console.log('No voice notes returned from API');
 				if (!isAutoSync) {
 					new Notice('No new voice notes to sync');
 				}
@@ -144,10 +147,15 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 			// Process each voice note
 			let syncedCount = 0;
 			for (const note of voiceNotes) {
+				console.log('Processing voice note:', note.id);
 				if (await this.saveVoiceNote(note)) {
 					syncedCount++;
+					console.log('Successfully saved voice note:', note.id);
 					// Mark as processed in Jarvis Bot
 					await this.markNoteAsProcessed(note.id);
+					console.log('Marked as processed:', note.id);
+				} else {
+					console.log('Failed to save voice note:', note.id);
 				}
 			}
 
@@ -203,6 +211,8 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 			const filePath = this.settings.syncFolder ? 
 				`${this.settings.syncFolder}/${fileName}` : fileName;
 
+			console.log(`Generated file path: ${filePath}`);
+
 			// Check if file already exists
 			const existingFile = this.app.vault.getAbstractFileByPath(filePath);
 			if (existingFile) {
@@ -211,7 +221,9 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 			}
 
 			const content = this.formatVoiceNote(note);
+			console.log(`Creating file: ${filePath}`);
 			await this.app.vault.create(filePath, content);
+			console.log(`Successfully created file: ${filePath}`);
 			
 			return true;
 		} catch (error) {
@@ -232,7 +244,10 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 			.replace(/\s+/g, '-')
 			.toLowerCase();
 
-		return `voice-note-${timestamp}-${shortId}-${preview}.md`;
+		// Sanitize timestamp for filesystem compatibility
+		const sanitizedTimestamp = timestamp.replace(/[\\/:*?"<>|]/g, '-');
+
+		return `voice-note-${sanitizedTimestamp}-${shortId}-${preview}.md`;
 	}
 
 	private formatVoiceNote(note: VoiceNote): string {
@@ -365,68 +380,16 @@ class WhatsAppVoiceSyncSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		// Test connection button
+		// Manual sync button
 		new Setting(containerEl)
-			.setName('Test Connection')
-			.setDesc('Test connection to Jarvis Bot')
+			.setName('Manual Sync')
+			.setDesc('Manually sync voice notes now')
 			.addButton(button => button
-				.setButtonText('Test')
+				.setButtonText('Sync Now')
 				.onClick(async () => {
-					await this.testConnection();
+					await this.plugin.syncVoiceNotes();
 				}));
 	}
 
-	private async testConnection() {
-		if (!this.plugin.settings.jarvisBotUrl || !this.plugin.settings.apiKey) {
-			new Notice('Please configure URL and API key first');
-			return;
-		}
 
-		try {
-			console.log('Testing connection to:', this.plugin.settings.jarvisBotUrl);
-			console.log('Using API key:', this.plugin.settings.apiKey.substring(0, 10) + '...');
-
-			// First test basic connectivity without auth
-			const basicResponse = await fetch(`${this.plugin.settings.jarvisBotUrl}/test-connection`, {
-				method: 'GET'
-			});
-
-			console.log('Basic test status:', basicResponse.status);
-			if (!basicResponse.ok) {
-				const basicError = await basicResponse.text();
-				console.error('Basic connection failed:', basicError);
-				new Notice(`❌ Basic connection failed: HTTP ${basicResponse.status}`);
-				return;
-			}
-
-			// Now test authenticated endpoint
-			const response = await fetch(`${this.plugin.settings.jarvisBotUrl}/health`, {
-				method: 'GET',
-				headers: {
-					'Authorization': `Bearer ${this.plugin.settings.apiKey}`,
-					'Content-Type': 'application/json'
-				}
-			});
-
-			console.log('Response status:', response.status);
-			const headerObj: any = {};
-			response.headers.forEach((value, key) => {
-				headerObj[key] = value;
-			});
-			console.log('Response headers:', headerObj);
-
-			if (response.ok) {
-				const data = await response.json();
-				console.log('Response data:', data);
-				new Notice('✅ Connection successful!');
-			} else {
-				const errorText = await response.text();
-				console.error('Response error:', errorText);
-				new Notice(`❌ Connection failed: HTTP ${response.status}`);
-			}
-		} catch (error) {
-			console.error('Fetch error:', error);
-			new Notice(`❌ Connection failed: ${error.message}`);
-		}
-	}
 }
