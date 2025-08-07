@@ -19,7 +19,7 @@
     "ai",
     "notes"
   ],
-  "author": "Your Name",
+  "author": "Thalys Guimarães",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^16.11.6",
