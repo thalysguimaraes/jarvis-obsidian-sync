@@ -168,9 +168,14 @@ var WhatsAppVoiceSyncPlugin = class extends import_obsidian.Plugin {
   async ensureSyncFolderExists() {
     if (!this.settings.syncFolder)
       return;
-    const folder = this.app.vault.getAbstractFileByPath(this.settings.syncFolder);
-    if (!folder) {
-      await this.app.vault.createFolder(this.settings.syncFolder);
+    const parts = this.settings.syncFolder.split("/");
+    let currentPath = "";
+    for (const part of parts) {
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      const folder = this.app.vault.getAbstractFileByPath(currentPath);
+      if (!folder) {
+        await this.app.vault.createFolder(currentPath);
+      }
     }
   }
   async saveVoiceNote(note) {
