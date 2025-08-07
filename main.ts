@@ -196,14 +196,21 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 		});
 	}
 
-	private async ensureSyncFolderExists(): Promise<void> {
-		if (!this.settings.syncFolder) return;
+        private async ensureSyncFolderExists(): Promise<void> {
+                if (!this.settings.syncFolder) return;
 
-		const folder = this.app.vault.getAbstractFileByPath(this.settings.syncFolder);
-		if (!folder) {
-			await this.app.vault.createFolder(this.settings.syncFolder);
-		}
-	}
+                // Ensure each level of the path exists since Vault.createFolder
+                // doesn't create parent folders automatically
+                const parts = this.settings.syncFolder.split('/');
+                let currentPath = '';
+                for (const part of parts) {
+                        currentPath = currentPath ? `${currentPath}/${part}` : part;
+                        const folder = this.app.vault.getAbstractFileByPath(currentPath);
+                        if (!folder) {
+                                await this.app.vault.createFolder(currentPath);
+                        }
+                }
+        }
 
 	private async saveVoiceNote(note: VoiceNote): Promise<boolean> {
 		try {
