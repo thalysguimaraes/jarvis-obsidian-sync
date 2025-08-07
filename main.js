@@ -157,13 +157,16 @@ var WhatsAppVoiceSyncPlugin = class extends import_obsidian.Plugin {
     return await response.json();
   }
   async markNoteAsProcessed(noteId) {
-    await fetch(`${this.settings.jarvisBotUrl}/api/voice-notes/${noteId}/processed`, {
+    const response = await fetch(`${this.settings.jarvisBotUrl}/api/voice-notes/${noteId}/processed`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${this.settings.apiKey}`,
         "Content-Type": "application/json"
       }
     });
+    if (!response.ok) {
+      throw new Error(`Failed to mark note as processed: HTTP ${response.status} ${response.statusText}`);
+    }
   }
   async ensureSyncFolderExists() {
     if (!this.settings.syncFolder)

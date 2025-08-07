@@ -187,14 +187,18 @@ export default class WhatsAppVoiceSyncPlugin extends Plugin {
 	}
 
 	private async markNoteAsProcessed(noteId: string): Promise<void> {
-		await fetch(`${this.settings.jarvisBotUrl}/api/voice-notes/${noteId}/processed`, {
-			method: 'POST',
-			headers: {
-				'Authorization': `Bearer ${this.settings.apiKey}`,
-				'Content-Type': 'application/json'
-			}
-		});
-	}
+                const response = await fetch(`${this.settings.jarvisBotUrl}/api/voice-notes/${noteId}/processed`, {
+                        method: 'POST',
+                        headers: {
+                                'Authorization': `Bearer ${this.settings.apiKey}`,
+                                'Content-Type': 'application/json'
+                        }
+                });
+
+                if (!response.ok) {
+                        throw new Error(`Failed to mark note as processed: HTTP ${response.status} ${response.statusText}`);
+                }
+        }
 
         private async ensureSyncFolderExists(): Promise<void> {
                 if (!this.settings.syncFolder) return;
