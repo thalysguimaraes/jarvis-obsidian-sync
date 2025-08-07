@@ -45,7 +45,7 @@ npm install
 npm run build
 ```
 
-Copy the built files (`main.js`, `manifest.json`, `styles.css`) to your Obsidian plugins directory.
+Copy the built files (`main.js`, `manifest.json`) to your Obsidian plugins directory.
 
 ### Configuration
 
@@ -208,7 +208,6 @@ npm run typecheck  # Type checking
 ```
 ├── main.ts           # Main plugin code
 ├── manifest.json     # Plugin manifest
-├── styles.css        # Plugin styles
 ├── package.json      # Dependencies
 └── README.md         # This file
 ```
